@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hoodoo-digital/sandstorm/internal"
+	"github.com/connorwade/dachshund/internal"
 	"github.com/spf13/cobra"
 )
 

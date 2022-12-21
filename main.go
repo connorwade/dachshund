@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/hoodoo-digital/sandstorm/cmd"
+	"github.com/connorwade/dachshund/cmd"
 )
 
 func main() {
