@@ -3,6 +3,7 @@ package internal
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gocolly/colly"
 	"gopkg.in/yaml.v3"
@@ -34,6 +35,9 @@ func Crawl() {
 	strtUrl := "https://" + crlVars.StarterURL
 	allowedDomains := crlVars.AllowedDomains
 
+	selToChk := strings.Join(crlVars.Selectors.CheckLinks, ", ")
+	selToGet := strings.Join(crlVars.Selectors.GetContent, ", ")
+
 	c := colly.NewCollector(
 		colly.MaxDepth(crlVars.Colly.MaxDepth),
 		colly.Async(crlVars.Colly.Async),
@@ -44,19 +48,42 @@ func Crawl() {
 
 	c.OnResponse(func(r *colly.Response) {
 		reqUrl := r.Request.URL.String()
-		ls := []Link{}
-		rep.AddPage(reqUrl, ls, r)
+		h := HTML{
+			[]Link{},
+			[]Image{},
+			[]ContentEl{},
+		}
+		rep.AddPage(reqUrl, h, r)
 	})
 
-	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		link := e.Attr("href")
+	c.OnHTML(selToChk, func(e *colly.HTMLElement) {
+		tag := e.Name
 		url := e.Request.URL.String()
 		el, err := e.DOM.Html()
 		if err != nil {
 			log.Println("Error with retrieving DOM HTML of element", err)
 		}
+		var link string
+		if tag == "a" {
+			link = e.Attr("href")
+			rep.AddLinkToPage(url, el, link)
+		} else if tag == "img" {
+			link = e.Attr("src")
+			rep.AddImageToPage(url, el, link)
+		}
+
 		rep.AddLinkToPage(url, el, link)
 		e.Request.Visit(link)
+	})
+
+	c.OnHTML(selToGet, func(e *colly.HTMLElement) {
+		content := e.Text
+		url := e.Request.URL.String()
+		el, err := e.DOM.Html()
+		if err != nil {
+			log.Println("Error with retrieving DOM HTML of element", err)
+		}
+		rep.AddContentToPage(url, el, content)
 	})
 
 	c.OnRequest(func(r *colly.Request) {
@@ -68,7 +95,7 @@ func Crawl() {
 			log.Println("----------------------------------------------------")
 			log.Printf("ERROR: %q\nURL: %q\nResponse Recieved: %d\n", err, r.Request.URL, r.StatusCode)
 			log.Println("----------------------------------------------------")
-			rep.AddPage(r.Request.URL.String(), nil, r)
+			rep.AddPage(r.Request.URL.String(), HTML{nil, nil, nil}, r)
 		}
 	})
 

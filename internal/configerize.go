@@ -10,7 +10,11 @@ import (
 type CrawlerVars struct {
 	StarterURL     string   `yaml:"starterURL"`
 	AllowedDomains []string `yaml:"allowedDomains"`
-	Colly          struct {
+	Selectors      struct {
+		GetContent []string `yaml:"get-content"`
+		CheckLinks []string `yaml:"check-links"`
+	} `yaml:"selectors"`
+	Colly struct {
 		MaxDepth         int  `yaml:"maxDepth"`
 		Async            bool `yaml:"async"`
 		ParallelRequests int  `yaml:"parallelRequests"`

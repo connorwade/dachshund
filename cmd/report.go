@@ -13,7 +13,11 @@ var report = &cobra.Command{
 	Short: "Write report from json file",
 	Long:  "Write report from json file",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := internal.WriteCSVReport()
+		err := internal.WriteFailureReport()
+		if err != nil {
+			log.Fatalln("Error writing report: ", err)
+		}
+		err = internal.WriteContentReport()
 		if err != nil {
 			log.Fatalln("Error writing report: ", err)
 		}
