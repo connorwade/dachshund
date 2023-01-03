@@ -22,6 +22,13 @@ var config = &cobra.Command{
 		cfg := internal.CrawlerVars{
 			StarterURL:     url,
 			AllowedDomains: []string{url},
+			Selectors: struct {
+				GetContent []string "yaml:\"get-content\""
+				CheckLinks []string "yaml:\"check-links\""
+			}{
+				GetContent: []string{"h1"},
+				CheckLinks: []string{"a[href]", "img[src]"},
+			},
 			Colly: struct {
 				MaxDepth         int  "yaml:\"maxDepth\""
 				Async            bool "yaml:\"async\""
