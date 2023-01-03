@@ -1,8 +1,10 @@
 package internal
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gocolly/colly"
 	"gopkg.in/yaml.v3"
@@ -34,6 +36,9 @@ func Crawl() {
 	strtUrl := "https://" + crlVars.StarterURL
 	allowedDomains := crlVars.AllowedDomains
 
+	selToChk := strings.Join(crlVars.Selectors.CheckLinks, ", ")
+	selToGet := strings.Join(crlVars.Selectors.GetContent, ", ")
+
 	c := colly.NewCollector(
 		colly.MaxDepth(crlVars.Colly.MaxDepth),
 		colly.Async(crlVars.Colly.Async),
@@ -48,8 +53,15 @@ func Crawl() {
 		rep.AddPage(reqUrl, ls, r)
 	})
 
-	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		link := e.Attr("href")
+	c.OnHTML(selToChk, func(e *colly.HTMLElement) {
+		tag := e.Name
+		var link string
+		if tag == "a" {
+			link = e.Attr("href")
+		} else if tag == "img" {
+			link = e.Attr("src")
+		}
+
 		url := e.Request.URL.String()
 		el, err := e.DOM.Html()
 		if err != nil {
@@ -57,6 +69,10 @@ func Crawl() {
 		}
 		rep.AddLinkToPage(url, el, link)
 		e.Request.Visit(link)
+	})
+
+	c.OnHTML(selToGet, func(e *colly.HTMLElement) {
+		fmt.Println("Content found: ", e.Text)
 	})
 
 	c.OnRequest(func(r *colly.Request) {
