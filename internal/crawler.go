@@ -4,10 +4,13 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gocolly/colly"
 	"gopkg.in/yaml.v3"
 )
+
+var mutex = &sync.Mutex{}
 
 func setCrawlerVars() (*CrawlerVars, error) {
 	crlVars := &CrawlerVars{}
@@ -32,6 +35,9 @@ func Crawl() {
 
 	rep := InitReporter()
 
+	origins := make(map[int]string)
+	uid := 1
+
 	strtUrl := "https://" + crlVars.StarterURL
 	allowedDomains := crlVars.AllowedDomains
 
@@ -46,14 +52,26 @@ func Crawl() {
 
 	c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 2})
 
+	c.OnRequest(func(r *colly.Request) {
+		log.Println("Visiting " + r.URL.String())
+	})
+
 	c.OnResponse(func(r *colly.Response) {
+		var org string
+
+		if r.Request.ID < 2 {
+			org = "starting url"
+		} else {
+			org = origins[int(r.Request.ID)]
+		}
+
 		reqUrl := r.Request.URL.String()
-		h := HTML{
+		h := Html{
 			[]Link{},
 			[]Image{},
 			[]ContentEl{},
 		}
-		rep.AddPage(reqUrl, h, r)
+		rep.AddPage(org, reqUrl, h, r)
 	})
 
 	c.OnHTML(selToChk, func(e *colly.HTMLElement) {
@@ -72,6 +90,11 @@ func Crawl() {
 			rep.AddImageToPage(url, el, link)
 		}
 
+		mutex.Lock()
+		origins[uid] = url
+		uid++
+		mutex.Unlock()
+
 		rep.AddLinkToPage(url, el, link)
 		e.Request.Visit(link)
 	})
@@ -86,16 +109,20 @@ func Crawl() {
 		rep.AddContentToPage(url, el, content)
 	})
 
-	c.OnRequest(func(r *colly.Request) {
-		log.Println("Visiting " + r.URL.String())
-	})
-
 	c.OnError(func(r *colly.Response, err error) {
 		if r.StatusCode != 0 {
+			var org string
+			if r.Request.ID < 2 {
+				org = "starting url"
+			} else {
+				org = origins[int(r.Request.ID)]
+			}
+
 			log.Println("----------------------------------------------------")
 			log.Printf("ERROR: %q\nURL: %q\nResponse Recieved: %d\n", err, r.Request.URL, r.StatusCode)
 			log.Println("----------------------------------------------------")
-			rep.AddPage(r.Request.URL.String(), HTML{nil, nil, nil}, r)
+
+			rep.AddPage(org, r.Request.URL.String(), Html{nil, nil, nil}, r)
 		}
 	})
 
