@@ -5,8 +5,11 @@ import (
 	"log"
 
 	"github.com/connorwade/dachshund/internal"
+	"github.com/connorwade/dachshund/web"
 	"github.com/spf13/cobra"
 )
+
+var h bool
 
 var report = &cobra.Command{
 	Use:   "report",
@@ -21,10 +24,15 @@ var report = &cobra.Command{
 		if err != nil {
 			log.Fatalln("Error writing report: ", err)
 		}
+
+		if h {
+			web.Serve()
+		}
 		fmt.Println("Report has been written")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(report)
+	report.Flags().BoolVarP(&h, "html", "H", false, "Display report as HTML")
 }

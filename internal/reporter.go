@@ -15,6 +15,39 @@ const (
 	reportFilename = "report.json"
 )
 
+type HtmlReport struct {
+	Failures     []Page
+	RatioOfFails float32
+	NumOfLinks   int
+	NumOfImages  int
+}
+
+func ReadIntoHtmlReport() *HtmlReport {
+	report, err := ReadReport()
+	if err != nil {
+		log.Fatalln("Error reading report: ", err)
+	}
+
+	rof := float32(len(report.Failures)) / float32(len(report.Pages))
+
+	var linkSum int
+	var imageSum int
+
+	for i := range report.Pages {
+		linkSum += len(report.Pages[i].HTML.Links)
+		imageSum += len(report.Pages[i].HTML.Images)
+	}
+
+	h := HtmlReport{
+		report.Failures,
+		rof,
+		linkSum,
+		imageSum,
+	}
+
+	return &h
+}
+
 type Reporter struct {
 	Pages    []Page `json:"allPages"`
 	Failures []Page `json:"failures"`
@@ -119,23 +152,6 @@ func (r *Reporter) WriteReport() error {
 	return nil
 }
 
-func ReadReport() (*Reporter, error) {
-	report, err := os.ReadFile(reportFilename)
-	if err != nil {
-		return nil, err
-	}
-
-	var jsonRep Reporter
-
-	err = json.Unmarshal(report, &jsonRep)
-	if err != nil {
-		return nil, err
-	}
-
-	return &jsonRep, nil
-
-}
-
 func WriteContentReport() error {
 	report, err := ReadReport()
 	if err != nil {
@@ -209,6 +225,23 @@ func WriteFailureReport() error {
 	writeToCSV(brokenElements, "csv-error-report.csv")
 
 	return nil
+}
+
+func ReadReport() (*Reporter, error) {
+	report, err := os.ReadFile(reportFilename)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonRep Reporter
+
+	err = json.Unmarshal(report, &jsonRep)
+	if err != nil {
+		return nil, err
+	}
+
+	return &jsonRep, nil
+
 }
 
 func writeToCSV(data [][]string, fn string) {

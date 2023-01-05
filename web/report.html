@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            font-size: 16px;
+            font-family: Arial, Helvetica, sans-serif;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 3rem;
+        }
+
+        h2,
+        h2 * {
+            font-size: 2rem;
+        }
+
+
+
+        h1,
+        h2 {
+            padding: 8px;
+        }
+
+        .failures,
+        .content {
+            width: 100%;
+        }
+
+        .failures li,
+        .content li {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            justify-items: center;
+        }
+    </style>
+    <title>Dachshund Report</title>
+</head>
+
+<body>
+    <h1>Dachshund Report</h1>
+    <hr />
+
+    <h2>
+        <span>Ratio of Fails:</span>
+        <span>{{ .RatioOfFails }}%</span>
+    </h2>
+
+    <h2>
+        <span>Links crawled:</span>
+        <span>{{ .NumOfLinks }}</span>
+    </h2>
+
+    <h2>
+        <span>Images crawled:</span>
+        <span>{{ .NumOfImages }}</span>
+    </h2>
+
+    <hr />
+
+    <div>
+        <div class="tab tab-failures">
+            <h2>
+                Links that failed
+            </h2>
+            <ul class="failures">
+                <li>
+                    <span>Origin</span>
+                    <span>URL</span>
+                    <span>HTML Element</span>
+                    <span>Response Code</span>
+                </li>
+                <li>
+                    <span>www.hoodoo.digital.com</span>
+                    <span>www.hoodoo.digital.com/404</span>
+                    <span>"< a class="link">check us out</ a>"</span>
+                    <span>404</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="tab tab-content">
+            <h2>
+                Content Gathered
+            </h2>
+            <ul class="content">
+                <li>
+                    <span>URL</span>
+                    <span>HTML Element</span>
+                    <span>Content</span>
+                </li>
+                <li>
+                    <span>www.hoodoo.digital.com</span>
+                    <span>"< a class="link">check us out</ a>"</span>
+                    <span>check us out</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+
+</html>

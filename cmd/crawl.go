@@ -26,5 +26,5 @@ var crawl = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(crawl)
-	crawl.Flags().BoolVarP(&rep, "report", "r", false, "write report after crawl")
+	crawl.Flags().BoolVarP(&rep, "report", "R", false, "write report after crawl")
 }
