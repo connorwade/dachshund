@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -63,6 +64,7 @@ type Reporter struct {
 
 type Page struct {
 	Origin   string          `json:"origin"`
+	OriginEl DomNode         `json:"originEl"`
 	Url      string          `json:"url"`
 	Html     Html            `json:"html"`
 	Response *colly.Response `json:"response"`
@@ -70,39 +72,37 @@ type Page struct {
 
 type Html struct {
 	Links   []Link      `json:"links"`
-	Images  []Image     `json:"images"`
 	Content []ContentEl `json:"content"`
 }
 
-type Image struct {
-	Element string `json:"element"`
-	Origin  string `json:"origin"`
-	Src     string `json:"src"`
-}
-
 type ContentEl struct {
-	Element string `json:"element"`
-	Origin  string `json:"origin"`
-	Text    string `json:"text"`
+	Element DomNode `json:"element"`
 }
 
 type Link struct {
-	Element string `json:"element"`
-	Origin  string `json:"origin"`
-	HREF    string `json:"href"`
+	Element DomNode `json:"element"`
+	Href    string  `json:"href"`
+}
+
+type DomNode struct {
+	Tag     string `json:"tag"`
+	Text    string `json:"text"`
+	Classes string `json:"classes"`
+	ID      string `json:"id"`
+	Inner   string `json:"innerHtml"`
 }
 
 func InitReporter() *Reporter {
 	return &Reporter{}
 }
 
-func (r *Reporter) AddPage(org string, url string, html Html, res *colly.Response) *Page {
-	p := &Page{org, url, html, res}
+func (r *Reporter) AddPage(org string, orgEl DomNode, url string, html Html, res *colly.Response) *Page {
+	p := &Page{org, orgEl, url, html, res}
 	r.Pages = append(r.Pages, *p)
 	return p
 }
 
-func (r *Reporter) AddLinkToPage(pageURL string, el string, href string) *Link {
+func (r *Reporter) AddLinkToPage(pageURL string, el DomNode, link string) *Link {
 	var p *Page
 	for i := range r.Pages {
 		if r.Pages[i].Url == pageURL {
@@ -110,12 +110,12 @@ func (r *Reporter) AddLinkToPage(pageURL string, el string, href string) *Link {
 			break
 		}
 	}
-	l := &Link{el, pageURL, href}
+	l := &Link{el, link}
 	p.Html.Links = append(p.Html.Links, *l)
 	return l
 }
 
-func (r *Reporter) AddImageToPage(pageURL string, el string, src string) *Image {
+func (r *Reporter) AddContentToPage(pageURL string, el DomNode) *ContentEl {
 	var p *Page
 	for i := range r.Pages {
 		if r.Pages[i].Url == pageURL {
@@ -123,20 +123,7 @@ func (r *Reporter) AddImageToPage(pageURL string, el string, src string) *Image 
 			break
 		}
 	}
-	l := &Image{el, pageURL, src}
-	p.Html.Images = append(p.Html.Images, *l)
-	return l
-}
-
-func (r *Reporter) AddContentToPage(pageURL string, el string, content string) *ContentEl {
-	var p *Page
-	for i := range r.Pages {
-		if r.Pages[i].Url == pageURL {
-			p = &r.Pages[i]
-			break
-		}
-	}
-	l := &ContentEl{el, pageURL, content}
+	l := &ContentEl{el}
 	p.Html.Content = append(p.Html.Content, *l)
 	return l
 }
@@ -155,77 +142,63 @@ func (r *Reporter) WriteReport() error {
 	return nil
 }
 
-func WriteContentReport() error {
+func WriteReports(failRep bool, contRep bool) error {
 	report, err := ReadReport()
 	if err != nil {
 		return err
 	}
 
-	// report content
-
-	var rows = [][]string{
-		{"Url", "Html Element", "Content"},
-	}
-
-	for i := range report.Pages {
-		page := report.Pages[i]
-		if page.Response.StatusCode < 200 && page.Response.StatusCode > 299 && len(page.Html.Content) == 0 {
-			continue
-		}
-
-		for j := range page.Html.Content {
-			a := []string{page.Url, page.Html.Content[j].Element, page.Html.Content[j].Text}
-			rows = append(rows, a)
-		}
-	}
-
-	writeToCSV(rows, "csv-content-report.csv")
-
-	return nil
-}
-
-func WriteFailureReport() error {
-	// report, err := ReadReport()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// reconcile failures
-
 	var brokenElements = [][]string{
-		{"Origin", "Url", "Html Element", "Response Code"},
+		{"Origin", "Url", "Response Code", "Origin Html Element", "Element Text", "Element Classes", "Element Id", "Inner Html"},
 	}
 
-	// for i := range report.Pages {
-	// 	page := report.Pages[i]
-	// 	if page.Response.StatusCode < 200 && page.Response.StatusCode > 299 {
-	// 		continue
-	// 	}
-	// 	//Check link failures
-	// 	for j := range page.Html.Links {
-	// 		link := report.Pages[i].Html.Links[j]
-	// 		for k := range report.Failures {
-	// 			fail := report.Failures[k]
-	// 			if link.HREF == fail.Url {
-	// 				a := []string{page.Url, fail.Url, link.Element, fmt.Sprintf("%x", fail.Response.StatusCode)}
-	// 				brokenElements = append(brokenElements, a)
-	// 			}
-	// 		}
-	// 	}
-	// 	//Check image failures
-	// 	for j := range page.Html.Images {
-	// 		link := report.Pages[i].Html.Images[j]
-	// 		for k := range report.Failures {
-	// 			fail := report.Failures[k]
-	// 			if link.Src == fail.Url {
-	// 				a := []string{page.Url, fail.Url, link.Element, fmt.Sprintf("%x", fail.Response.StatusCode)}
-	// 				brokenElements = append(brokenElements, a)
-	// 			}
-	// 		}
-	// 	}
-	// }
+	var contRows = [][]string{
+		{"Url", "Html Element", "Element Text", "Element Classes", "Element Id", "Inner Html"},
+	}
 
-	writeToCSV(brokenElements, "csv-error-report.csv")
+	for _, page := range report.Pages {
+
+		if contRep {
+			for _, content := range page.Html.Content {
+				element := content.Element
+				a := []string{
+					page.Url,
+					element.Tag,
+					element.Text,
+					element.Classes,
+					element.ID,
+					element.Inner,
+				}
+				contRows = append(contRows, a)
+			}
+		}
+
+		if failRep {
+			// skip pages with no failures or redirects
+			if page.Response.StatusCode >= 200 && page.Response.StatusCode < 300 {
+				continue
+			}
+
+			b := []string{
+				page.OriginEl.Tag,
+				page.OriginEl.Text,
+				page.OriginEl.Classes,
+				page.OriginEl.ID,
+				page.OriginEl.Inner,
+			}
+			a := []string{page.Origin, page.Url, fmt.Sprintf("%d", page.Response.StatusCode)}
+			a = append(a, b...)
+			brokenElements = append(brokenElements, a)
+		}
+
+	}
+
+	if failRep {
+		writeToCSV(brokenElements, "csv-failure-report.csv")
+	}
+	if contRep {
+		writeToCSV(contRows, "csv-content-report.csv")
+	}
 
 	return nil
 }
