@@ -19,7 +19,7 @@ var crawl = &cobra.Command{
 		internal.Crawl()
 		fmt.Println("Crawl has finished")
 		if rep {
-			err := internal.WriteReports(true, true)
+			err := internal.WriteReports(true, true, true, true)
 			if err != nil {
 				log.Fatalln("Error writing report: ", err)
 			}

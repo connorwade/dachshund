@@ -15,52 +15,21 @@ const (
 	reportFilename = "report.json"
 )
 
-// type HtmlReport struct {
-// 	Failures     []Page
-// 	RatioOfFails float32
-// 	NumOfLinks   int
-// 	NumOfImages  int
-// }
+type HtmlReport struct {
+	Pages    []Page     `json:"pages"`
+	Failures [][]string `json:"failures"`
+	Content  [][]string `json:"content"`
+}
 
-// func ReadIntoHtmlReport() *HtmlReport {
-// 	report, err := ReadReport()
-// 	if err != nil {
-// 		log.Fatalln("Error reading report: ", err)
-// 	}
+var hr HtmlReport
 
-// 	rof := float32(len(report.Failures)) / float32(len(report.Pages))
-
-// 	var linkSum int
-// 	var imageSum int
-
-// 	for i := range report.Pages {
-// 		linkSum += len(report.Pages[i].Html.Links)
-// 		imageSum += len(report.Pages[i].Html.Images)
-// 	}
-
-// 	h := HtmlReport{
-// 		report.Failures,
-// 		rof,
-// 		linkSum,
-// 		imageSum,
-// 	}
-
-// 	return &h
-// }
+func GetHtmlReport() *HtmlReport {
+	return &hr
+}
 
 type Reporter struct {
 	Pages []Page `json:"allPages"`
-	// Failures []Page `json:"failures"`
 }
-
-/*
-	Refactor code so that it is a better representation
-	of a page.
-
-	Pages should have their Responses, Url, Origin, and Html attached.
-
-	Html should just be representive of the Html
-*/
 
 type Page struct {
 	Origin   string          `json:"origin"`
@@ -142,7 +111,7 @@ func (r *Reporter) WriteReport() error {
 	return nil
 }
 
-func WriteReports(failRep bool, contRep bool) error {
+func WriteReports(failRep bool, contRep bool, csvRep bool, htmlRep bool) error {
 	report, err := ReadReport()
 	if err != nil {
 		return err
@@ -193,11 +162,17 @@ func WriteReports(failRep bool, contRep bool) error {
 
 	}
 
-	if failRep {
+	if failRep && csvRep {
 		writeToCSV(brokenElements, "csv-failure-report.csv")
 	}
-	if contRep {
+	if contRep && csvRep {
 		writeToCSV(contRows, "csv-content-report.csv")
+	}
+
+	hr = HtmlReport{
+		report.Pages,
+		brokenElements[1:],
+		contRows[1:],
 	}
 
 	return nil

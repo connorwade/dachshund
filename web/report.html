@@ -37,9 +37,17 @@
 
         .failures li,
         .content li {
+            margin: 8px;
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
             justify-items: center;
+        }
+
+        .failures li {
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+        }
+
+        .content li {
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
         }
     </style>
     <title>Dachshund Report</title>
@@ -50,19 +58,16 @@
     <hr />
 
     <h2>
-        <span>Ratio of Fails:</span>
-        <span>{{ .RatioOfFails }}%</span>
-    </h2>
-
-    <h2>
-        <span>Links crawled:</span>
+        <span>Pages Crawled</span>
         <span>{{ .NumOfLinks }}</span>
     </h2>
 
     <h2>
-        <span>Images crawled:</span>
-        <span>{{ .NumOfImages }}</span>
+        <span>Ratio of Fails:</span>
+        <span>{{ .RatioOfFails }}%</span>
     </h2>
+
+
 
     <hr />
 
@@ -75,15 +80,20 @@
                 <li>
                     <span>Origin</span>
                     <span>URL</span>
-                    <span>HTML Element</span>
                     <span>Response Code</span>
+                    <span>Origin Html Element</span>
+                    <span>Element Text</span>
+                    <span>Element Classes</span>
+                    <span>Element Id</span>
+                    <span>Inner Html</span>
                 </li>
+                {{ range $i, $f := .Failures }}
                 <li>
-                    <span>www.hoodoo.digital.com</span>
-                    <span>www.hoodoo.digital.com/404</span>
-                    <span>"< a class="link">check us out</ a>"</span>
-                    <span>404</span>
+                    {{ range $f}}
+                    <span>{{ . }}</span>
+                    {{ end }}
                 </li>
+                {{ end }}
             </ul>
         </div>
 
@@ -94,14 +104,19 @@
             <ul class="content">
                 <li>
                     <span>URL</span>
-                    <span>HTML Element</span>
-                    <span>Content</span>
+                    <span>Html Element</span>
+                    <span>Element Text</span>
+                    <span>Element Classes</span>
+                    <span>Element Id</span>
+                    <span>Inner Html</span>
                 </li>
+                {{ range $i, $c := .Content }}
                 <li>
-                    <span>www.hoodoo.digital.com</span>
-                    <span>"< a class="link">check us out</ a>"</span>
-                    <span>check us out</span>
+                    {{ range $c}}
+                    <span>{{ . }}</span>
+                    {{ end }}
                 </li>
+                {{ end }}
             </ul>
         </div>
     </div>
