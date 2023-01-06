@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            font-size: 16px;
+            font-family: Arial, Helvetica, sans-serif;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 3rem;
+        }
+
+        h2,
+        h2 * {
+            font-size: 2rem;
+        }
+
+
+
+        h1,
+        h2 {
+            padding: 8px;
+        }
+
+        .failures,
+        .content {
+            width: 100%;
+        }
+
+        .failures li,
+        .content li {
+            margin: 8px;
+            display: grid;
+            justify-items: center;
+        }
+
+        .failures li {
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+        }
+
+        .content li {
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+        }
+    </style>
+    <title>Dachshund Report</title>
+</head>
+
+<body>
+    <h1>Dachshund Report</h1>
+    <hr />
+
+    <h2>
+        <span>Pages Crawled</span>
+        <span>{{ .NumOfLinks }}</span>
+    </h2>
+
+    <h2>
+        <span>Ratio of Fails:</span>
+        <span>{{ .RatioOfFails }}%</span>
+    </h2>
+
+
+
+    <hr />
+
+    <div>
+        <div class="tab tab-failures">
+            <h2>
+                Links that failed
+            </h2>
+            <ul class="failures">
+                <li>
+                    <span>Origin</span>
+                    <span>URL</span>
+                    <span>Response Code</span>
+                    <span>Origin Html Element</span>
+                    <span>Element Text</span>
+                    <span>Element Classes</span>
+                    <span>Element Id</span>
+                    <span>Inner Html</span>
+                </li>
+                {{ range $i, $f := .Failures }}
+                <li>
+                    {{ range $f}}
+                    <span>{{ . }}</span>
+                    {{ end }}
+                </li>
+                {{ end }}
+            </ul>
+        </div>
+
+        <div class="tab tab-content">
+            <h2>
+                Content Gathered
+            </h2>
+            <ul class="content">
+                <li>
+                    <span>URL</span>
+                    <span>Html Element</span>
+                    <span>Element Text</span>
+                    <span>Element Classes</span>
+                    <span>Element Id</span>
+                    <span>Inner Html</span>
+                </li>
+                {{ range $i, $c := .Content }}
+                <li>
+                    {{ range $c}}
+                    <span>{{ . }}</span>
+                    {{ end }}
+                </li>
+                {{ end }}
+            </ul>
+        </div>
+    </div>
+</body>
+
+</html>

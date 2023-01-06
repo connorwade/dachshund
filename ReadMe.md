@@ -20,7 +20,7 @@ Dachshund currently supports crawling websites to check links, image srcs, and t
 
 Dachshund has three subcommands:
 1. dachshund crawl: will crawl the website defined in the YAML configuration file. Use the flag "--report", to instantly write a report for the crawl.
-2. dachshund report: writes a report from a JSON file. Currently only supports CSV files
+2. dachshund report: writes a report from a JSON file. Supports CSV outputs and an HTML reporter. To use the HTML reporter, use the -H or --html flag when using report.
 3. dachshund config <yourwebsite>: creates a YAML configuration file for you
 
 ### YAML configuration file

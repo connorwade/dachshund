@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/connorwade/dachshund/internal"
 	"github.com/spf13/cobra"
@@ -18,13 +19,15 @@ var crawl = &cobra.Command{
 		internal.Crawl()
 		fmt.Println("Crawl has finished")
 		if rep {
-			internal.WriteContentReport()
-			internal.WriteFailureReport()
+			err := internal.WriteReports(true, true, true, true)
+			if err != nil {
+				log.Fatalln("Error writing report: ", err)
+			}
 		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(crawl)
-	crawl.Flags().BoolVarP(&rep, "report", "r", false, "write report after crawl")
+	crawl.Flags().BoolVarP(&rep, "report", "R", false, "write report after crawl")
 }

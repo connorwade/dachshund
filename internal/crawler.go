@@ -4,10 +4,13 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gocolly/colly"
 	"gopkg.in/yaml.v3"
 )
+
+var mutex = &sync.Mutex{}
 
 func setCrawlerVars() (*CrawlerVars, error) {
 	crlVars := &CrawlerVars{}
@@ -32,6 +35,10 @@ func Crawl() {
 
 	rep := InitReporter()
 
+	origins := make(map[int]string)
+	originEls := make(map[int]DomNode)
+	uid := 1
+
 	strtUrl := "https://" + crlVars.StarterURL
 	allowedDomains := crlVars.AllowedDomains
 
@@ -46,56 +53,114 @@ func Crawl() {
 
 	c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 2})
 
+	c.OnRequest(func(r *colly.Request) {
+		log.Println("Visiting " + r.URL.String())
+	})
+
 	c.OnResponse(func(r *colly.Response) {
+		var org string
+		var orgEl DomNode
+
+		if r.Request.ID < 2 {
+			org = "starting url"
+			orgEl = DomNode{
+				"starting url",
+				"starting url",
+				"starting url",
+				"starting url",
+				"starting url",
+			}
+		} else {
+			org = origins[int(r.Request.ID)]
+			orgEl = originEls[int(r.Request.ID)]
+		}
+
 		reqUrl := r.Request.URL.String()
-		h := HTML{
+		h := Html{
 			[]Link{},
-			[]Image{},
 			[]ContentEl{},
 		}
-		rep.AddPage(reqUrl, h, r)
+		rep.AddPage(org, orgEl, reqUrl, h, r)
 	})
 
 	c.OnHTML(selToChk, func(e *colly.HTMLElement) {
 		tag := e.Name
 		url := e.Request.URL.String()
-		el, err := e.DOM.Html()
+		text := e.DOM.Text()
+		classes := e.DOM.AttrOr("class", "")
+		id := e.DOM.AttrOr("id", "")
+		inner, err := e.DOM.Html()
+
 		if err != nil {
-			log.Println("Error with retrieving DOM HTML of element", err)
+			log.Println("Could not get inner HTML of element")
 		}
+
+		el := &DomNode{
+			tag, text, classes, id, inner,
+		}
+
 		var link string
 		if tag == "a" {
 			link = e.Attr("href")
-			rep.AddLinkToPage(url, el, link)
 		} else if tag == "img" {
 			link = e.Attr("src")
-			rep.AddImageToPage(url, el, link)
 		}
 
-		rep.AddLinkToPage(url, el, link)
+		mutex.Lock()
+		origins[uid] = url
+		originEls[uid] = *el
+		uid++
+		mutex.Unlock()
+
+		rep.AddLinkToPage(url, *el, link)
 		e.Request.Visit(link)
 	})
 
 	c.OnHTML(selToGet, func(e *colly.HTMLElement) {
-		content := e.Text
+		tag := e.Name
 		url := e.Request.URL.String()
-		el, err := e.DOM.Html()
+		text := e.DOM.Text()
+		classes := e.DOM.AttrOr("class", "")
+		id := e.DOM.AttrOr("id", "")
+		inner, err := e.DOM.Html()
+
+		if err != nil {
+			log.Println("Could not get inner HTML of element")
+		}
+
+		el := &DomNode{
+			tag, text, classes, id, inner,
+		}
+
 		if err != nil {
 			log.Println("Error with retrieving DOM HTML of element", err)
 		}
-		rep.AddContentToPage(url, el, content)
-	})
-
-	c.OnRequest(func(r *colly.Request) {
-		log.Println("Visiting " + r.URL.String())
+		rep.AddContentToPage(url, *el)
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
 		if r.StatusCode != 0 {
+			var org string
+			var orgEl DomNode
+			if r.Request.ID < 2 {
+				org = "starting url"
+				orgEl = DomNode{
+					"starting url",
+					"starting url",
+					"starting url",
+					"starting url",
+					"starting url",
+				}
+			} else {
+				org = origins[int(r.Request.ID)]
+				orgEl = originEls[int(r.Request.ID)]
+			}
+
 			log.Println("----------------------------------------------------")
 			log.Printf("ERROR: %q\nURL: %q\nResponse Recieved: %d\n", err, r.Request.URL, r.StatusCode)
 			log.Println("----------------------------------------------------")
-			rep.AddPage(r.Request.URL.String(), HTML{nil, nil, nil}, r)
+
+			rep.AddPage(org, orgEl, r.Request.URL.String(), Html{nil, nil}, r)
 		}
 	})
 
